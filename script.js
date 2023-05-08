@@ -3,21 +3,23 @@ var context = canvas.getContext('2d');
 
 var grid = 16;
 var count = 0;
+var apples = [];
 
 var snake = {
     x: 160,
     y: 160,
     dx: grid,
     dy: 0,
-
     cells: [],
     maxCells: 3
 };
 
 var apple = {
-    x: 320,
-    y: 320
+    x: 0,
+    y: 0
 };
+
+apples.push({x: 320, y: 320});
 
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min)) + min;
@@ -90,7 +92,7 @@ function constructPath(parentMap, start, end) {
 }
 
 function move(path, snake) {
-    if (path !== null) {
+    if (path !== null && path.length > 1) {
         let cell = path[1];
         try {
             if (cell.x < snake.x && snake.dx === 0) {
@@ -113,6 +115,25 @@ function move(path, snake) {
     return snake;
 }
 
+function getDistance(x1, y1, x2, y2) {
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getClosestApple(snake, apples) {
+    let closestApple = apples[0];
+    let minDistance = getDistance(snake.x, snake.y, closestApple.x, closestApple.y);
+    for (let i = 1; i < apples.length; i++) {
+        let distance = getDistance(snake.x, snake.y, apples[i].x, apples[i].y);
+        if (distance < minDistance) {
+            closestApple = apples[i];
+            minDistance = distance;
+        }
+    }
+    return closestApple;
+}
+
 function loop() {
     requestAnimationFrame(loop);
 
@@ -120,11 +141,16 @@ function loop() {
         return;
     }
 
+    apple = getClosestApple(snake, apples);
+
     let path = findPath({x: snake.x, y: snake.y}, {x: apple.x, y: apple.y}, snake.cells);
     snake = move(path, snake);
 
     count = 0;
     context.clearRect(0,0,canvas.width,canvas.height);
+    context.textAlign = 'center';
+    context.font = "20px context-police"
+    context.fillText("score: " + (snake.cells.length - 3), canvas.width / 2, 20);
 
     snake.x += snake.dx;
     snake.y += snake.dy;
@@ -147,19 +173,29 @@ function loop() {
     }
 
     context.fillStyle = 'red';
-    context.fillRect(apple.x, apple.y, grid-1, grid-1);
+    apples.forEach(function(apple) {
+        context.fillRect(apple.x, apple.y, grid-1, grid-1);
+    })
 
     context.fillStyle = 'white';
     snake.cells.forEach(function(cell, index) {
         context.fillRect(cell.x, cell.y, grid-1, grid-1);  
-        if (cell.x === apple.x && cell.y === apple.y) {
-            snake.maxCells++;
 
-            apple.x = getRandomInt(0, canvas.width / 16) * grid;
-            apple.y = getRandomInt(0, canvas.height / 16) * grid;
-            while (snake.cells.includes({x: apple.x, y: apple.y})) {
-                apple.x = getRandomInt(0, canvas.width / 16) * grid;
-                apple.y = getRandomInt(0, canvas.height / 16) * grid;
+        for (var i = 0; i < apples.length; i++) {
+            if (cell.x === apples[i].x && cell.y === apples[i].y) {
+                snake.maxCells++;
+
+                if (apples.length === 1) {
+                    apples[i].x = getRandomInt(0, canvas.width / 16) * grid;
+                    apples[i].y = getRandomInt(0, canvas.height / 16) * grid;
+                    while (snake.cells.includes({x: apples[i].x, y: apples[i].y})) {
+                        apples[i].x = getRandomInt(0, canvas.width / 16) * grid;
+                        apples[i].y = getRandomInt(0, canvas.height / 16) * grid;
+                    }
+                } else {
+                    apples.splice(i, 1);
+                }
+                break;
             }
         }
 
@@ -172,13 +208,20 @@ function loop() {
                 snake.maxCells = 3;
                 snake.dx = grid;
                 snake.dy = 0;
-                while (snake.cells.includes({x: apple.x, y: apple.y})) {
-                    apple.x = getRandomInt(0, canvas.width / 16) * grid;
-                    apple.y = getRandomInt(0, canvas.height / 16) * grid;
-                }
+                apples = [{x: 320, y: 320}];
             }
         }
     });
 }
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'p') {
+        var newApple = {
+            x: getRandomInt(0, canvas.width / 16) * grid,
+            y: getRandomInt(0, canvas.height / 16) * grid,
+        };
+        apples.push(newApple);
+    }
+})
 
 requestAnimationFrame(loop);

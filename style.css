@@ -10,6 +10,13 @@ body {
     justify-content: center;
 }
 
+@font-face {
+    font-family: 'context-police';
+    src: url('font.ttf') format('truetype');
+}
+
 canvas {
     border: 1px solid white;
+    font-family: 'context-police';
 }
+
